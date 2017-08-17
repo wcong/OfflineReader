@@ -12,6 +12,7 @@ import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.wcong.or.util.PathUtil;
 
 import java.io.IOException;
 import java.nio.file.FileSystems;
@@ -91,7 +92,8 @@ public class Notes extends Pane {
         notePath = getNotePath(url);
         if (!Files.exists(notePath)) {
             try {
-                createPath(notePath);
+                PathUtil.createParentPath(notePath);
+                Files.createFile(notePath);
             } catch (IOException e) {
                 logger.error("create path error", e);
             }
@@ -105,20 +107,10 @@ public class Notes extends Pane {
             } catch (IOException e) {
                 logger.error("read file error", e);
             }
+        } else {
+            textArea.setText("");
+            notePane.getSelectionModel().select(1);
         }
-    }
-
-    private void createPath(Path path) throws IOException {
-        if (!Files.exists(path.getParent())) {
-            createDirectory(path.getParent());
-        }
-    }
-
-    private void createDirectory(Path path) throws IOException {
-        if (!Files.exists(path.getParent())) {
-            createDirectory(path.getParent());
-        }
-        Files.createDirectory(path);
     }
 
     private Path getNotePath(String url) {
