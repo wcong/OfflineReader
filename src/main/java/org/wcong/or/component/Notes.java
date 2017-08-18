@@ -1,7 +1,6 @@
 package org.wcong.or.component;
 
 import com.jfoenix.controls.JFXTabPane;
-import com.sun.tools.javac.util.List;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.Pane;
@@ -18,7 +17,6 @@ import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
 
 /**
  * what a notes will do
@@ -89,7 +87,7 @@ public class Notes extends Pane {
     }
 
     public void loadNote(String url) {
-        notePath = getNotePath(url);
+        notePath = noteDirectionPath.resolve(PathUtil.encodeUrlPath(url));
         if (!Files.exists(notePath)) {
             try {
                 PathUtil.createParentPath(notePath);
@@ -112,18 +110,4 @@ public class Notes extends Pane {
             notePane.getSelectionModel().select(1);
         }
     }
-
-    private Path getNotePath(String url) {
-        String parseUrlString = url.replaceAll(".*://", "");
-        String[] splitUrl = parseUrlString.split("/");
-        if (splitUrl.length <= 3) {
-            return noteDirectionPath.resolve(parseUrlString);
-        } else {
-            String prefix = String.join("/", List.of(splitUrl[0], splitUrl[1], splitUrl[2]));
-            String encodeUrl = prefix + "/" + String.join("/", Arrays.copyOfRange(splitUrl, 3, splitUrl.length)).hashCode();
-            return noteDirectionPath.resolve(encodeUrl);
-        }
-    }
-
-
 }
