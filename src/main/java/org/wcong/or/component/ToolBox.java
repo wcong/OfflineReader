@@ -2,10 +2,13 @@ package org.wcong.or.component;
 
 import com.jfoenix.controls.JFXButton;
 import javafx.geometry.HPos;
+import javafx.geometry.Pos;
 import javafx.geometry.VPos;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
+import javafx.scene.text.TextAlignment;
 
 import java.util.Optional;
 
@@ -34,10 +37,16 @@ public class ToolBox extends Region {
         label.setDisable(true);
         leftBox.getChildren().addAll(label, homeButton, setting);
         rightBox.getChildren().addAll(add);
+
+        TextInputDialog textInputDialog = new TextInputDialog();
+        textInputDialog.setTitle("add url");
+        JFXButton desc = new JFXButton("add one offline url");
+        desc.setDisable(true);
+        desc.setAlignment(Pos.CENTER);
+        desc.setTextAlignment(TextAlignment.CENTER);
+        textInputDialog.getDialogPane().setHeader(desc);
+
         add.setOnMouseClicked((event) -> {
-            TextInputDialog textInputDialog = new TextInputDialog();
-            textInputDialog.setTitle("add one offline url");
-            textInputDialog.getDialogPane().getButtonTypes();
             Optional<String> result = textInputDialog.showAndWait();
             if (result != null && result.isPresent()) {
                 savedFlow.addItem(result.get());
