@@ -11,6 +11,9 @@ import javafx.scene.layout.VBox;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebHistory;
 import javafx.scene.web.WebView;
+import org.w3c.dom.NodeList;
+
+import java.util.Arrays;
 
 /**
  * @author wcong<wc19920415@gmail.com>
@@ -32,6 +35,10 @@ public class Saved extends HBox {
 
     private final Notes notes = new Notes();
     private final Separator separator = new Separator();
+
+    private SavedFlow.Metadata metadata;
+
+    private SavedFlow savedFlow;
 
     public Saved() {
         HBox buttonBox = new HBox();
@@ -62,8 +69,41 @@ public class Saved extends HBox {
                     || newValue == Worker.State.CANCELLED
                     || newValue == Worker.State.FAILED) {
                 notes.loadNote(webEngine.getLocation());
+                if (!metadata.getUrl().equals(webEngine.getLocation())) {
+                    return;
+                }
+                String title = null;
+                String imgUrl = null;
+                NodeList titleNodeList = webEngine.getDocument().getElementsByTagName("title");
+                boolean isChanged = false;
+                if (titleNodeList.getLength() > 0) {
+                    title = titleNodeList.item(0).getTextContent();
+                    if (!title.equals(metadata.getTitle())) {
+                        metadata.setTitle(title);
+                        isChanged = true;
+                    }
+                }
+                NodeList imgNodeList = webEngine.getDocument().getElementsByTagName("img");
+                if (imgNodeList.getLength() > 0) {
+                    imgUrl = imgNodeList.item(0).getAttributes().getNamedItem("src").getTextContent();
+                    if (imgUrl.startsWith(".")) {
+                        String[] split = webEngine.getLocation().split("/");
+                        imgUrl = String.join("/", Arrays.copyOfRange(split, 0, split.length - 1)) + "/" + imgUrl;
+                        if (!imgUrl.equals(metadata.getImage())) {
+                            metadata.setImage(imgUrl);
+                            isChanged = true;
+                        }
+                    }
+                }
+                if (isChanged) {
+                    savedFlow.saveMetadata();
+                }
             }
         });
+    }
+
+    public void setSavedFlow(SavedFlow savedFlow) {
+        this.savedFlow = savedFlow;
     }
 
     @Override
@@ -75,7 +115,8 @@ public class Saved extends HBox {
         layoutInArea(notes, webWidth, 0, w - webWidth, h, 0, HPos.CENTER, VPos.CENTER);
     }
 
-    public void loadUrl(String url) {
-        webEngine.load(url);
+    public void loadUrl(SavedFlow.Metadata metadata) {
+        this.metadata = metadata;
+        webEngine.load(metadata.getUrl());
     }
 }

@@ -1,16 +1,22 @@
 package org.wcong.or.component;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import javafx.scene.layout.FlowPane;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.logging.Logger;
+import java.util.Map;
 
 /**
  * saved meta data
@@ -20,7 +26,7 @@ import java.util.logging.Logger;
  */
 public class SavedFlow extends FlowPane {
 
-    private Logger logger = Logger.getLogger(SavedFlow.class.getName());
+    private Logger logger = LoggerFactory.getLogger(SavedFlow.class);
 
     private Path metadataPath = FileSystems.getDefault().getPath("./metadata");
 
@@ -30,9 +36,14 @@ public class SavedFlow extends FlowPane {
 
     private final Saved saved;
 
+    private final Map<String, Metadata> metadataMap = new HashMap<>();
+
+    private ObjectMapper objectMapper = new ObjectMapper();
+
     public SavedFlow(Home home, Saved saved) {
         this.home = home;
         this.saved = saved;
+        saved.setSavedFlow(this);
         init();
     }
 
@@ -44,24 +55,22 @@ public class SavedFlow extends FlowPane {
                 throw new RuntimeException("create metadata path error", e);
             }
         }
-        List<String> metadataList = null;
+        Metadatas metadatas = null;
         if (Files.exists(metadataPath)) {
             try {
-                metadataList = Files.readAllLines(metadataPath);
+                metadatas = objectMapper.readValue(metadataPath.toFile(), Metadatas.class);
             } catch (IOException e) {
                 logger.info("get metadata error " + e);
             }
         }
-        if (metadataList != null) {
-            for (String metadata : metadataList) {
-                String[] split = metadata.split(";");
-                String url = split[0];
-                String imageUrl = split.length > 1 ? split[1] : defaultImage.toString();
-                String labelText = split.length > 2 ? split[2] : "offline";
+        if (metadatas != null) {
+            for (Metadata metadata : metadatas.metadatas) {
+                String imageUrl = metadata.image != null ? metadata.image : defaultImage.toString();
+                String labelText = metadata.title != null ? metadata.title : "offline";
                 SavedItem savedItem = new SavedItem(imageUrl, labelText);
                 savedItem.setOnMouseClicked((event) -> {
                     home.showSaved();
-                    saved.loadUrl(url);
+                    saved.loadUrl(metadata);
                 });
                 getChildren().add(savedItem);
             }
@@ -72,20 +81,41 @@ public class SavedFlow extends FlowPane {
         if (!Files.exists(metadataPath)) {
             return;
         }
+        Metadata metadata = metadataMap.get(url);
+        if (metadata == null) {
+            metadata = new Metadata(url, null, null);
+            metadataMap.put(url, metadata);
+            saveMetadata();
+        }
+        final Metadata savedMetadata = metadata;
+        SavedItem savedItem = new SavedItem(defaultImage.toString(), "offline");
+        savedItem.setOnMouseClicked((event) -> {
+            home.showSaved();
+            saved.loadUrl(savedMetadata);
+        });
+        getChildren().add(savedItem);
+
+    }
+
+    public void saveMetadata() {
         try {
-            Files.write(metadataPath, (url + "\n").getBytes(), StandardOpenOption.APPEND);
-            SavedItem savedItem = new SavedItem(defaultImage.toString(), "offline");
-            savedItem.setOnMouseClicked((event) -> {
-                home.showSaved();
-                saved.loadUrl(url);
-            });
-            getChildren().add(savedItem);
+            objectMapper.writeValue(metadataPath.toFile(), new Metadatas(new ArrayList<>(metadataMap.values())));
         } catch (IOException e) {
-            logger.info("add url error");
+            logger.error("save metadata error", e);
         }
     }
 
+
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    static class Metadatas implements Serializable {
+        private List<Metadata> metadatas;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     static class Metadata implements Serializable {
         private String url;
         private String title;
